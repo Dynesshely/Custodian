@@ -15,6 +15,7 @@ Lists the applications that really live inside your sandboxes, launches them, an
   <img alt="UI" src="https://img.shields.io/badge/UI-WPF%20%2B%20Fluent%20%2B%20Mica-6E5BFF" />
   <img alt="Release" src="https://img.shields.io/github/v/release/Dynesshely/Custodian?color=2EA44F" />
   <img alt="Downloads" src="https://img.shields.io/github/downloads/Dynesshely/Custodian/total?color=2EA44F" />
+  <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue" />
   <img alt="Stars" src="https://img.shields.io/github/stars/Dynesshely/Custodian?style=social" />
 </p>
 
