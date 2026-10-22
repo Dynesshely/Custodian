@@ -111,15 +111,36 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: |
+          $semver = "${{ steps.version.outputs.semver }}"
+          $quad = "${{ steps.version.outputs.quad }}"
           $makensis = Join-Path $env:NSIS_DIR 'makensis.exe'
-          & $makensis /INPUTCHARSET UTF8 `
-            "/DAPP_VERSION=${{ steps.version.outputs.semver }}" `
-            "/DAPP_VERSION_QUAD=${{ steps.version.outputs.quad }}" `
-            installer/custodian.nsi
+          $nsiPath = 'installer/custodian.nsi'
+          $nsi = Get-Content $nsiPath -Raw
+          $defines = @()
+
+          if ($nsi -match '!ifndef APP_VERSION') {
+              # 新脚本支持命令行覆盖
+              $defines = @("/DAPP_VERSION=$semver", "/DAPP_VERSION_QUAD=$quad")
+              "Script supports overrides - building with $($defines -join ' ')"
+          }
+          else {
+              # 老版本脚本把版本号写死，这里就地改写（保证历史 tag 也能重新打包）
+              $nsi = $nsi -replace '(!define\s+APP_VERSION\s+)"[^"]*"', ('$1"' + $semver + '"')
+              $nsi = $nsi -replace '(VIProductVersion\s+)"[^"]*"', ('$1"' + $quad + '"')
+              $nsi = $nsi -replace '(VIAddVersionKey\s+/LANG=2052\s+"FileVersion"\s+)"[^"]*"', ('$1"' + $quad + '"')
+              [System.IO.File]::WriteAllText((Resolve-Path $nsiPath), $nsi, (New-Object System.Text.UTF8Encoding($true)))
+              "Patched $nsiPath for version $semver ($quad)"
+          }
+
+          & $makensis /INPUTCHARSET UTF8 @defines 'installer/custodian.nsi'
           if ($LASTEXITCODE -ne 0) { throw "makensis failed ($LASTEXITCODE)" }
 
-          $setup = Get-Item "artifacts/Custodian-${{ steps.version.outputs.semver }}-Setup.exe"
-          "Installer: {0:N1} MB, FileVersion {1}" -f ($setup.Length / 1MB), $setup.VersionInfo.FileVersion | Write-Host
+          $setup = Get-Item "artifacts/Custodian-$semver-Setup.exe"
+          $info = $setup.VersionInfo
+          "Installer: {0:N1} MB, FileVersion {1}, ProductVersion {2}" -f ($setup.Length / 1MB), $info.FileVersion, $info.ProductVersion | Write-Host
+          if ($info.FileVersion -ne $quad) {
+              throw "Unexpected installer FileVersion '$($info.FileVersion)' (expected $quad)."
+          }
 
       - name: Write checksum
         shell: pwsh
