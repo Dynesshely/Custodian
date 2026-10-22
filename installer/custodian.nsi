@@ -3,8 +3,15 @@ Unicode true
 !include "MUI2.nsh"
 
 !define APP_NAME     "Custodian"
-!define APP_VERSION  "0.2.3"
 !define APP_PUBLISHER "Dynesshely"
+
+; 版本号可以由命令行覆盖（CI: makensis /DAPP_VERSION=1.2.3 /DAPP_VERSION_QUAD=1.2.3.0）
+!ifndef APP_VERSION
+!define APP_VERSION "0.2.3"
+!endif
+!ifndef APP_VERSION_QUAD
+!define APP_VERSION_QUAD "${APP_VERSION}.0"
+!endif
 !define APP_EXE      "Custodian.exe"
 !define APP_REGKEY   "Software\Microsoft\Windows\CurrentVersion\Uninstall\Custodian"
 
@@ -17,10 +24,10 @@ SetCompressor /SOLID lzma
 SetCompressorDictSize 64
 BrandingText "${APP_NAME} ${APP_VERSION} · ${APP_PUBLISHER}"
 
-VIProductVersion "0.2.3.0"
+VIProductVersion "${APP_VERSION_QUAD}"
 VIAddVersionKey /LANG=2052 "ProductName"      "${APP_NAME}"
 VIAddVersionKey /LANG=2052 "FileDescription"  "${APP_NAME} 安装程序"
-VIAddVersionKey /LANG=2052 "FileVersion"      "0.2.3.0"
+VIAddVersionKey /LANG=2052 "FileVersion"      "${APP_VERSION_QUAD}"
 VIAddVersionKey /LANG=2052 "ProductVersion"   "${APP_VERSION}"
 VIAddVersionKey /LANG=2052 "CompanyName"      "${APP_PUBLISHER}"
 VIAddVersionKey /LANG=2052 "LegalCopyright"   "© 2026 ${APP_PUBLISHER}"

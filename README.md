@@ -13,6 +13,7 @@ Lists the applications that really live inside your sandboxes, launches them, an
   <img alt=".NET" src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white" />
   <img alt="Windows" src="https://img.shields.io/badge/Windows%2011-22H2%2B-0078D4?logo=windows11&logoColor=white" />
   <img alt="UI" src="https://img.shields.io/badge/UI-WPF%20%2B%20Fluent%20%2B%20Mica-6E5BFF" />
+  <a href="https://github.com/Dynesshely/Custodian/actions/workflows/release.yml"><img alt="Release pipeline" src="https://github.com/Dynesshely/Custodian/actions/workflows/release.yml/badge.svg" /></a>
   <img alt="Release" src="https://img.shields.io/github/v/release/Dynesshely/Custodian?color=2EA44F" />
   <img alt="Downloads" src="https://img.shields.io/github/downloads/Dynesshely/Custodian/total?color=2EA44F" />
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue" />

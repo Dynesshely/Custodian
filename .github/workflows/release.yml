@@ -1,0 +1,180 @@
+name: Release
+
+# 只在推送版本 tag 时打包（v1.2.3 / v1.2.3-rc.1），也可以手动对已有 tag 重跑。
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to rebuild and publish (for example v0.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CONFIGURATION: Release
+  RUNTIME: win-x64
+
+jobs:
+  package:
+    name: Package and publish
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 1
+
+      - name: Resolve version from tag
+        id: version
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          TAG_INPUT: ${{ inputs.tag }}
+        run: |
+          $tag = if ($env:EVENT_NAME -eq 'workflow_dispatch') { $env:TAG_INPUT.Trim() } else { $env:REF_NAME }
+          if ($tag -notmatch '^v(?<semver>[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$') {
+              throw "Tag '$tag' is not a version tag (expected vX.Y.Z or vX.Y.Z-suffix)."
+          }
+
+          $semver = $Matches['semver']
+          $numeric = ($semver -split '-')[0]
+          $quad = "$numeric.0"
+
+          "tag=$tag"        | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "semver=$semver"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "quad=$quad"      | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+          "Building $tag (semver $semver, file version $quad)" | Write-Host
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Publish self-contained single file
+        shell: pwsh
+        run: |
+          dotnet publish src/Custodian.App/Custodian.App.csproj `
+            -c $env:CONFIGURATION -r $env:RUNTIME --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:Version=${{ steps.version.outputs.semver }} `
+            -p:FileVersion=${{ steps.version.outputs.quad }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.quad }} `
+            -p:InformationalVersion=${{ steps.version.outputs.semver }} `
+            -o artifacts/publish
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed ($LASTEXITCODE)" }
+
+      - name: Verify published binary
+        shell: pwsh
+        run: |
+          $exe = Get-Item 'artifacts/publish/Custodian.exe'
+          $info = $exe.VersionInfo
+          $line = "Published: {0:N1} MB, FileVersion {1}, ProductVersion {2}" -f ($exe.Length / 1MB), $info.FileVersion, $info.ProductVersion
+          $line | Write-Host
+          if ($info.FileVersion -ne "${{ steps.version.outputs.quad }}") {
+              throw "Unexpected FileVersion '$($info.FileVersion)' (expected ${{ steps.version.outputs.quad }})."
+          }
+
+      - name: Install NSIS
+        shell: pwsh
+        run: |
+          choco install nsis --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw "choco install nsis failed ($LASTEXITCODE)" }
+          $dir = 'C:\Program Files (x86)\NSIS'
+          if (-not (Test-Path (Join-Path $dir 'makensis.exe'))) { throw "makensis.exe not found in $dir" }
+          "NSIS_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $makensis = Join-Path $env:NSIS_DIR 'makensis.exe'
+          & $makensis /INPUTCHARSET UTF8 `
+            "/DAPP_VERSION=${{ steps.version.outputs.semver }}" `
+            "/DAPP_VERSION_QUAD=${{ steps.version.outputs.quad }}" `
+            installer/custodian.nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed ($LASTEXITCODE)" }
+
+          $setup = Get-Item "artifacts/Custodian-${{ steps.version.outputs.semver }}-Setup.exe"
+          "Installer: {0:N1} MB, FileVersion {1}" -f ($setup.Length / 1MB), $setup.VersionInfo.FileVersion | Write-Host
+
+      - name: Write checksum
+        shell: pwsh
+        run: |
+          $semver = "${{ steps.version.outputs.semver }}"
+          $setup = Get-Item "artifacts/Custodian-$semver-Setup.exe"
+          $hash = (Get-FileHash $setup.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $line = "$hash  $($setup.Name)"
+          $line | Out-File -FilePath "artifacts/custodian-$semver-setup.sha256" -Encoding ascii
+          $line | Write-Host
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: custodian-${{ steps.version.outputs.semver }}
+          path: |
+            artifacts/Custodian-*-Setup.exe
+            artifacts/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          SEMVER: ${{ steps.version.outputs.semver }}
+        run: |
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -ne 0) {
+              "Creating release $env:TAG"
+              gh release create $env:TAG --title "Custodian v$env:SEMVER" --generate-notes --verify-tag
+              if ($LASTEXITCODE -ne 0) { throw "gh release create failed ($LASTEXITCODE)" }
+          }
+          else {
+              "Release $env:TAG already exists - uploading assets"
+          }
+
+          gh release upload $env:TAG --clobber `
+            "artifacts/Custodian-$env:SEMVER-Setup.exe" `
+            "artifacts/custodian-$env:SEMVER-setup.sha256"
+          if ($LASTEXITCODE -ne 0) { throw "gh release upload failed ($LASTEXITCODE)" }
+
+          gh release view $env:TAG --json tagName,isDraft,assets
+
+      - name: Job summary
+        if: always()
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $semver = "${{ steps.version.outputs.semver }}"
+          $lines = @(
+            "### Custodian $tag",
+            "",
+            "- Installer: artifacts/Custodian-$semver-Setup.exe",
+            "- Release: https://github.com/${{ github.repository }}/releases/tag/$tag"
+          )
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
