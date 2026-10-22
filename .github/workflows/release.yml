@@ -172,7 +172,9 @@ jobs:
           gh release view $env:TAG *> $null
           if ($LASTEXITCODE -ne 0) {
               "Creating release $env:TAG"
-              gh release create $env:TAG --title "Custodian v$env:SEMVER" --generate-notes --verify-tag
+              $extra = @()
+              if ($env:SEMVER -match '-') { $extra += '--prerelease' }
+              gh release create $env:TAG --title "Custodian v$env:SEMVER" --generate-notes --verify-tag @extra
               if ($LASTEXITCODE -ne 0) { throw "gh release create failed ($LASTEXITCODE)" }
           }
           else {
