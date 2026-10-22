@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Custodian.App</RootNamespace>
+    <AssemblyName>Custodian</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="Exists('..\..\assets\custodian.ico')">..\..\assets\custodian.ico</ApplicationIcon>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WinForms 只用于托盘 NotifyIcon，去掉它的隐式 using 以免和 WPF 类型撞名 -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Custodian.Core\Custodian.Core.csproj" />
+    <ProjectReference Include="..\Custodian.Interop\Custodian.Interop.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('..\..\assets\custodian.ico')">
+    <Resource Include="..\..\assets\custodian.ico" Link="Assets\custodian.ico" />
+  </ItemGroup>
+
+</Project>

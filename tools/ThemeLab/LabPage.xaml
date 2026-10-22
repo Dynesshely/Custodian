@@ -1,0 +1,221 @@
+<UserControl x:Class="ThemeLab.LabPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="{DynamicResource AppFontFamily}"
+             Width="1200" Height="800"
+             UseLayoutRounding="True">
+
+    <!--
+        ThemeLab 样例页：只使用 Fluent.xaml 契约里的资源键（样式全部 DynamicResource），
+        墙上没有任何 Fallback.xaml 独有的键 —— 顺便验证 Fluent 可以完全独立使用。
+    -->
+
+    <Grid x:Name="Wallpaper">
+        <!-- 模拟桌面壁纸（仅 Lab，不属于 UI 资源） -->
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#FFEAF0F7" Offset="0" />
+                <GradientStop Color="#FFDCE7F2" Offset="0.5" />
+                <GradientStop Color="#FFF2EBE4" Offset="1" />
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <Ellipse Width="900" Height="760" Margin="-160,-280,0,0"
+                 HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#5A9EC3EE" Offset="0" />
+                    <GradientStop Color="#009EC3EE" Offset="1" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+
+        <Ellipse Width="820" Height="700" Margin="0,0,-200,-260"
+                 HorizontalAlignment="Right" VerticalAlignment="Bottom">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#4FE9C3A0" Offset="0" />
+                    <GradientStop Color="#00E9C3A0" Offset="1" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+
+        <!-- Mica 近似面板：背景由代码按主题设置（像真实窗口的 Mica 叠色） -->
+        <Border x:Name="WindowPanel"
+                Margin="16"
+                CornerRadius="8"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource WindowOutlineBrush}"
+                Background="#B8F3F3F3"
+                SnapsToDevicePixels="True">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="56" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- ============ 顶部工具区（高 56） ============ -->
+                <Grid Grid.Row="0" Margin="16,0,12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 标题区拖动用的透明 Thumb（WindowDragThumbStyle）：覆盖左侧标题，不遮挡右侧按钮 -->
+                    <Thumb x:Name="DragThumb"
+                           Grid.Column="0"
+                           Style="{DynamicResource WindowDragThumbStyle}"
+                           Width="220"
+                           Height="40"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center" />
+
+                    <TextBlock x:Name="TitleText"
+                               Grid.Column="0"
+                               Text="Custodian"
+                               Style="{DynamicResource TextStyleTitle}"
+                               VerticalAlignment="Center" />
+
+                    <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBox x:Name="FilterBox"
+                                 Width="320"
+                                 Style="{DynamicResource FilterTextBoxStyle}" />
+                        <TextBlock x:Name="FilterPlaceholder"
+                                   Text="搜索应用"
+                                   Margin="10,0,0,0"
+                                   FontSize="13"
+                                   VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </Grid>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="RefreshButton"
+                                Style="{DynamicResource IconButtonStyle}"
+                                ToolTip="刷新应用列表">
+                            <TextBlock Text="&#xE72C;"
+                                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="16"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                        </Button>
+
+                        <Button x:Name="HelpButton"
+                                Style="{DynamicResource IconButtonStyle}"
+                                Margin="2,0,0,0">
+                            <Button.ToolTip>
+                                <ToolTip Style="{DynamicResource FluentToolTipStyle}"
+                                         Content="Ctrl+Alt+Space 呼出面板；Tab 选择应用，Enter 启动。" />
+                            </Button.ToolTip>
+                            <!-- 圆圈问号：椭圆 + ?，比图标字体的问号更容易读成「帮助」 -->
+                            <Grid Width="18" Height="18">
+                                <Ellipse Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                         StrokeThickness="1.2" Fill="Transparent" />
+                                <TextBlock Text="?"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,0,1"
+                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                            </Grid>
+                        </Button>
+
+                        <Button x:Name="CloseButton"
+                                Style="{DynamicResource IconButtonStyle}"
+                                Margin="2,0,0,0"
+                                ToolTip="关闭">
+                            <TextBlock Text="&#xE711;"
+                                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ============ 主体 ============ -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="216" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 左栏（宽 216） -->
+                    <Grid Grid.Column="0" Margin="8,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Text="沙盒"
+                                   Style="{DynamicResource TextStyleSection}"
+                                   Margin="12,2,0,8" />
+
+                        <StackPanel Grid.Row="1">
+                            <RadioButton x:Name="RailAll"
+                                         Content="全部应用"
+                                         GroupName="SandboxRail"
+                                         IsChecked="True"
+                                         Style="{DynamicResource RailItemStyle}" />
+                            <RadioButton Content="默认沙盒"
+                                         GroupName="SandboxRail"
+                                         Style="{DynamicResource RailItemStyle}" />
+                            <RadioButton Content="测试沙盒"
+                                         GroupName="SandboxRail"
+                                         Style="{DynamicResource RailItemStyle}" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="3"
+                                   Text="Ctrl+Alt+Space 呼出"
+                                   Style="{DynamicResource TextStyleHint}"
+                                   Margin="12,0,0,10" />
+
+                        <Border Grid.RowSpan="4"
+                                Width="1"
+                                HorizontalAlignment="Right"
+                                Background="{DynamicResource SeparatorBrush}" />
+                    </Grid>
+
+                    <!-- 内容区 -->
+                    <Grid Grid.Column="2" Margin="0,0,8,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,2,12,8">
+                            <TextBlock Text="应用"
+                                       Style="{DynamicResource TextStyleSection}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock x:Name="CountHint"
+                                       Text="0 个应用"
+                                       Style="{DynamicResource TextStyleHint}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+
+                        <ScrollViewer x:Name="CardsScroller"
+                                      Grid.Row="1"
+                                      Style="{DynamicResource ScrollViewerStyle}"
+                                      Padding="0,0,4,0"
+                                      VerticalScrollBarVisibility="Visible"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <WrapPanel x:Name="CardsPanel" Orientation="Horizontal" />
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+
+                <!-- 悬浮层：用于摆一个「已打开的」ToolTip 样例（离屏截图用） -->
+                <Canvas x:Name="Overlay"
+                        Grid.RowSpan="2"
+                        IsHitTestVisible="False"
+                        Background="Transparent" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

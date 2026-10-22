@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ThemeLab</RootNamespace>
+    <AssemblyName>ThemeLab</AssemblyName>
+    <StartupObject>ThemeLab.Program</StartupObject>
+  </PropertyGroup>
+
+  <!--
+    主题自测台：把 App 项目里真正的主题文件「链接」进来，保证测的就是线上那一份。
+      * Page（而不是 Resource）让 XAML 正常编译成 BAML，Fluent.xaml 内部的相对 Source 也能正确解析；
+      * 不引用 Custodian.App 项目，避免和 Lead / 其它 teammate 的并行改动互相干扰。
+  -->
+  <ItemGroup>
+    <Page Include="..\..\src\Custodian.App\Themes\Fluent.xaml" Link="Themes\Fluent.xaml" />
+    <Page Include="..\..\src\Custodian.App\Themes\Light.xaml" Link="Themes\Light.xaml" />
+    <Page Include="..\..\src\Custodian.App\Themes\Dark.xaml" Link="Themes\Dark.xaml" />
+    <Compile Include="..\..\src\Custodian.App\Themes\ThemeManager.cs" Link="Themes\ThemeManager.cs" />
+  </ItemGroup>
+
+</Project>

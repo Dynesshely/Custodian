@@ -1,0 +1,16 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>0.2.3</Version>
+    <Company>Dynesshely</Company>
+    <Product>Custodian</Product>
+    <Copyright>Copyright © Dynesshely 2026</Copyright>
+    <NeutralLanguage>zh-Hans</NeutralLanguage>
+    <Deterministic>true</Deterministic>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,576 @@
+<Window x:Class="Custodian.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Custodian.App.Controls"
+        Title="Custodian"
+        Width="1160" Height="760"
+        MinWidth="900" MinHeight="540"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        AllowsTransparency="False"
+        Background="Transparent"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal"
+        FontFamily="{DynamicResource AppFontFamily}"
+        PreviewKeyDown="OnWindowPreviewKeyDown"
+        PreviewTextInput="OnWindowTextInput"
+        Deactivated="OnWindowDeactivated">
+
+    <Window.Resources>
+        <!-- 左栏项：按钮行（不用 ListBox，避免其选中链路在某些窗口结构下不响应鼠标） -->
+        <Style x:Key="RailButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root" CornerRadius="6" Height="36" Padding="12,0,8,0"
+                                Background="Transparent" BorderThickness="0"
+                                TextElement.Foreground="{DynamicResource TextSecondaryBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="Indicator" Width="3" Height="16" CornerRadius="2"
+                                        Margin="0,0,9,0" VerticalAlignment="Center"
+                                        Background="{DynamicResource RailSelectedIndicatorBrush}"
+                                        Visibility="Collapsed" />
+                                <ContentPresenter Grid.Column="1" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource SubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource SubtlePressedBrush}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource RailSelectedBrush}" />
+                                <Setter TargetName="Root" Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter TargetName="Root" Property="TextElement.FontWeight" Value="SemiBold" />
+                                <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Root" Property="Padding" Value="0,0,8,0" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--
+            应用卡片：标准视图与紧凑视图共用这一个模板。
+            尺寸 / 边距 / 图标大小 / 对齐 / 路径可见性全部绑共享布局指标（AppCardViewModel.Metrics，
+            由 MainViewModel 持有的单例）；切换视图只改指标属性，已生成的卡片自动重排，
+            不重建集合、不准备第二套模板 / ItemsControl。
+        -->
+        <DataTemplate x:Key="AppCardTemplate">
+            <Grid Margin="{Binding Metrics.Margin}"
+                  Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
+                <Button Style="{DynamicResource LauncherCardStyle}"
+                        Width="{Binding Metrics.Width}"
+                        Height="{Binding Metrics.Height}"
+                        Padding="{Binding Metrics.CardPadding}"
+                        Margin="0"
+                        IsTabStop="False" Focusable="False"
+                        Click="OnCardClick">
+                    <Button.ToolTip>
+                        <ToolTip Style="{DynamicResource FluentToolTipStyle}" Content="{Binding FullPath}" />
+                    </Button.ToolTip>
+                    <Grid>
+                        <StackPanel Orientation="{Binding Metrics.CardOrientation}"
+                                    HorizontalAlignment="{Binding Metrics.ContentAlignment}"
+                                    VerticalAlignment="Center">
+                            <Grid Width="{Binding Metrics.IconSize}"
+                                  Height="{Binding Metrics.IconSize}"
+                                  HorizontalAlignment="{Binding Metrics.IconAlignment}">
+                                <Image Source="{Binding Icon}"
+                                       RenderOptions.BitmapScalingMode="HighQuality">
+                                    <Image.Style>
+                                        <Style TargetType="Image">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasIcon}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Image.Style>
+                                </Image>
+                                <Border CornerRadius="{Binding Metrics.IconCornerRadius}"
+                                        Background="{DynamicResource ControlFillBrush}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasIcon}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding Initial}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontSize="{Binding Metrics.InitialFontSize}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </Border>
+                            </Grid>
+
+                            <StackPanel Width="{Binding Metrics.TextWidth}"
+                                        Margin="{Binding Metrics.TitleMargin}"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}"
+                                           Style="{DynamicResource TextStyleBodyStrong}"
+                                           FontSize="{Binding Metrics.TitleFontSize}"
+                                           TextAlignment="{Binding Metrics.TitleAlignment}"
+                                           TextTrimming="CharacterEllipsis"
+                                           TextWrapping="NoWrap" />
+                                <TextBlock Text="{Binding DisplayPath}"
+                                           Style="{DynamicResource TextStyleCaption}"
+                                           TextAlignment="{Binding Metrics.TitleAlignment}"
+                                           TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding Metrics.ShowPath,
+                                                        Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <!-- 运行中：绿色边框（优先级低于选中框） -->
+                <Border CornerRadius="{Binding Metrics.CornerRadius}"
+                        BorderThickness="2" Margin="0" IsHitTestVisible="False"
+                        BorderBrush="#FF22C55E"
+                        Visibility="{Binding ShowRunningRing, Converter={StaticResource BoolToVis}}" />
+
+                <!-- 运行中：右上角绿点 -->
+                <Ellipse Width="8" Height="8" Fill="#FF22C55E"
+                         Stroke="{DynamicResource LayerFillHoverBrush}" StrokeThickness="1.5"
+                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,7,0"
+                         IsHitTestVisible="False"
+                         Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}" />
+
+                <!-- 选中：强调色环（最上层，优先级最高） -->
+                <Border CornerRadius="{Binding Metrics.CornerRadius}"
+                        BorderThickness="2" Margin="0" IsHitTestVisible="False"
+                        BorderBrush="{DynamicResource AccentBrush}"
+                        Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- 标准应用折叠行 -->
+        <Style x:Key="StandardGroupButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Margin" Value="4,6,4,0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root" CornerRadius="6" Background="Transparent"
+                                Padding="6,0,10,0" BorderThickness="1" BorderBrush="Transparent">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="Chevron" Text="{Binding StandardChevronGlyph}" FontSize="10"
+                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           VerticalAlignment="Center" Margin="0,0,7,0"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                                <TextBlock x:Name="Label" Text="标准应用程序" FontSize="12"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBlock x:Name="Count" Text="{Binding StandardCountText}" FontSize="11"
+                                           VerticalAlignment="Center" Margin="8,0,0,0"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource SubtleHoverBrush}" />
+                            </Trigger>
+                            <!-- 键盘光标落在这一行（方向键可以移到这里，Enter/Space 展开收起） -->
+                            <DataTrigger Binding="{Binding Header.IsSelected}" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource RailSelectedBrush}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Chevron" Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter TargetName="Count" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
+        <!--
+            紧凑视图：「标准应用程序」文件夹块（类似手机桌面文件夹）。
+            3×3 图标预览 + 标题，永远排在该沙盒应用列表最后；选中后 Enter / Space 打开居中弹窗。
+        -->
+        <DataTemplate x:Key="FolderCardTemplate">
+            <Grid Margin="{Binding Metrics.Margin}"
+                  Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
+                <Button Style="{DynamicResource LauncherCardStyle}"
+                        Width="{Binding Metrics.Width}"
+                        Height="{Binding Metrics.Height}"
+                        Padding="{Binding Metrics.CardPadding}"
+                        Margin="0"
+                        IsTabStop="False" Focusable="False"
+                        Click="OnFolderClick">
+                    <Button.ToolTip>
+                        <ToolTip Style="{DynamicResource FluentToolTipStyle}"
+                                 Content="{Binding NavTitle}" />
+                    </Button.ToolTip>
+                    <Grid>
+                        <StackPanel Orientation="{Binding Metrics.CardOrientation}"
+                                    HorizontalAlignment="{Binding Metrics.ContentAlignment}"
+                                    VerticalAlignment="Center">
+                            <!-- 预览区与普通应用的图标同样大（42）、无底色：看起来是同一套卡片，只是里面是 2×2 -->
+                            <Grid Width="{Binding Metrics.IconSize}"
+                                  Height="{Binding Metrics.IconSize}"
+                                  HorizontalAlignment="{Binding Metrics.IconAlignment}">
+                                <ItemsControl ItemsSource="{Binding PreviewApps}" Margin="1">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="{Binding PreviewColumns}" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="1">
+                                                <Image Source="{Binding Icon}"
+                                                       RenderOptions.BitmapScalingMode="HighQuality">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasIcon}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
+                                                </Image>
+                                                <Border CornerRadius="3"
+                                                        Background="{DynamicResource LayerFillBrush}">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasIcon}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Initial}" FontSize="8" FontWeight="SemiBold"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+
+                            <TextBlock Text="{Binding Title}"
+                                       Width="{Binding Metrics.TextWidth}"
+                                       FontSize="{Binding Metrics.TitleFontSize}"
+                                       TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       TextWrapping="NoWrap"
+                                       Margin="{Binding Metrics.TitleMargin}" />
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <!-- 选中：强调色环 -->
+                <Border CornerRadius="{Binding Metrics.CornerRadius}"
+                        BorderThickness="2" Margin="0" IsHitTestVisible="False"
+                        BorderBrush="{DynamicResource AccentBrush}"
+                        Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- 卡片区模板选择器：应用卡片 / 文件夹块 -->
+        <controls:CardItemTemplateSelector x:Key="SectionItemTemplateSelector"
+                                           AppTemplate="{StaticResource AppCardTemplate}"
+                                           FolderTemplate="{StaticResource FolderCardTemplate}" />
+
+        <!-- 一个沙盒分组 -->
+        <DataTemplate x:Key="SectionTemplate">
+            <!-- BlockWidth 由 View 按实测布局算：标准视图＝整行宽（等于纵向堆叠），紧凑视图＝能并排就并排 -->
+            <StackPanel Width="{Binding BlockWidth}"
+                        Margin="0,0,12,12"
+                        Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal" Margin="4,0,0,6">
+                    <TextBlock Text="{Binding Name}" Style="{DynamicResource TextStyleSection}"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding GroupLabelSuffix}" Margin="8,0,0,0"
+                               Style="{DynamicResource TextStyleHint}"
+                               Visibility="{Binding HasGroupLabel, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding Items}"
+                              ItemTemplateSelector="{StaticResource SectionItemTemplateSelector}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <TextBlock Text="无应用" Margin="8,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource TextStyleHint}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasAnyContent}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- 标准视图的标题行 + 内联列表；紧凑视图改用文件夹块 + 居中弹窗 -->
+                <StackPanel Visibility="{Binding ShowHeaderRow, Converter={StaticResource BoolToVis}}">
+                    <Button Style="{StaticResource StandardGroupButtonStyle}"
+                            Tag="{Binding Header}"
+                            Click="OnStandardToggleClick"
+                            AutomationProperties.Name="标准应用程序" />
+
+                    <ItemsControl ItemsSource="{Binding StandardApps}"
+                                  ItemTemplate="{StaticResource AppCardTemplate}"
+                                  Visibility="{Binding ShowInlineStandardApps, Converter={StaticResource BoolToVis}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Border x:Name="RootBorder" CornerRadius="8" BorderThickness="1"
+            BorderBrush="{DynamicResource WindowOutlineBrush}">
+        <Grid>
+            <!--
+                整窗内容（工具栏 + 主体）。文件夹弹窗打开时这一层会被「截图 → 缩小一半 → 盒式模糊」的位图替代
+                （见 MainWindow.Backdrop.cs），并把自身设为 Hidden：弹窗期间不做任何离屏渲染，
+                避免 BlurEffect 每帧光栅化整窗 + 反复申请渲染目标（那是私有内存涨到 180 MB 平台的主因）。
+            -->
+            <Grid x:Name="BackdropHost">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="56" />
+                    <RowDefinition Height="2" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+            <!-- 顶部工具区 -->
+            <Grid Grid.Row="0" Margin="16,0,10,0" Background="Transparent"
+                  MouseLeftButtonDown="OnTitleBarMouseDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image x:Name="TitleIcon" Width="20" Height="20" Margin="0,0,10,0"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="Custodian" FontSize="16" FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                </StackPanel>
+
+                <Grid Grid.Column="2" Width="320" VerticalAlignment="Center" Margin="0,0,4,0">
+                    <TextBox x:Name="FilterBox"
+                             Style="{DynamicResource FilterTextBoxStyle}"
+                             Padding="30,0,10,0"
+                             VerticalContentAlignment="Center"
+                             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+                             TextChanged="OnFilterTextChanged"
+                             PreviewKeyDown="OnFilterPreviewKeyDown" />
+                    <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="12" Margin="11,0,0,0"
+                               HorizontalAlignment="Left" VerticalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                    <TextBlock x:Name="FilterPlaceholder" Text="搜索应用"
+                               Margin="33,0,0,0" VerticalAlignment="Center"
+                               IsHitTestVisible="False" FontSize="12"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                </Grid>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="RefreshButton" Style="{DynamicResource IconButtonStyle}"
+                            Margin="0,0,4,0"
+                            Click="OnRefreshClick" AutomationProperties.Name="重新扫描">
+                        <TextBlock Text="&#xE72C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" />
+                    </Button>
+                    <Button x:Name="CloseButton" Style="{DynamicResource IconButtonStyle}"
+                            Click="OnCloseClick" AutomationProperties.Name="关闭">
+                        <TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <ProgressBar Grid.Row="1" Height="2" IsIndeterminate="True"
+                         BorderThickness="0" Background="Transparent"
+                         Foreground="{DynamicResource AccentBrush}"
+                         Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+
+            <!-- 主体：左栏 + 卡片区 -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="216" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ScrollViewer x:Name="RailScroller" Grid.Column="0" Margin="8,6,8,14"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Style="{DynamicResource ScrollViewerStyle}">
+                    <ItemsControl x:Name="RailItemsHost" ItemsSource="{Binding RailItems}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource RailButtonStyle}"
+                                        Click="OnRailItemClick"
+                                        AutomationProperties.Name="{Binding Name}"
+                                        Content="{Binding}">
+                                    <Button.ContentTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="{Binding CountText}"
+                                                           VerticalAlignment="Center" Margin="8,0,0,0" FontSize="11"
+                                                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </Button.ContentTemplate>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="CardsScroller" Grid.Column="1"
+                              Margin="0,6,6,10" Padding="6,0,14,0"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Style="{DynamicResource ScrollViewerStyle}"
+                              SizeChanged="OnCardsViewportChanged"
+                              ScrollChanged="OnCardsScrollChanged">
+                    <Grid>
+                        <TextBlock Text="没有匹配的应用"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontSize="13" Margin="0,60,0,0"
+                                   Foreground="{DynamicResource TextTertiaryBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasVisibleCards}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- 沙盒分组按块排布：紧凑视图里窗口够宽时，下一个沙盒的块可以跟上一个并排（外层 WrapPanel） -->
+                        <ItemsControl x:Name="GroupsHost" ItemsSource="{Binding Sections}"
+                                      ItemTemplate="{StaticResource SectionTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+            </Grid>
+
+            <!-- 文件夹弹窗（紧凑视图）：整窗毛玻璃遮罩 + 居中面板，Esc 返回上一级 -->
+            <Grid Panel.ZIndex="30"
+                  Visibility="{Binding IsFolderOpen, Converter={StaticResource BoolToVis}}">
+                <!-- 弹窗打开瞬间截的模糊快照（替代原来的整窗 BlurEffect） -->
+                <Image x:Name="BackdropSnapshot" Stretch="Fill"
+                       IsHitTestVisible="False"
+                       RenderOptions.BitmapScalingMode="LowQuality" />
+
+                <Border x:Name="FolderScrim" Background="{DynamicResource ScrimBrush}"
+                        MouseLeftButtonDown="OnFolderScrimClick" />
+
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- 九宫格软阴影：一张预烘焙位图，替代 DropShadowEffect 的离屏渲染 -->
+                    <controls:NinePatchShadow Margin="-26" />
+
+                <Border Width="560" MaxHeight="600"
+                        CornerRadius="12" BorderThickness="1"
+                        Background="{DynamicResource FlyoutBackgroundBrush}"
+                        BorderBrush="{DynamicResource WindowOutlineBrush}">
+                    <StackPanel Margin="18,16,18,14">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding ActiveFolderTitle}" FontSize="14" FontWeight="SemiBold"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding ActiveFolderCountText}" FontSize="12" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                            </StackPanel>
+                            <TextBlock Text="Esc 返回" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}" />
+                        </Grid>
+
+                        <ItemsControl x:Name="FolderItemsHost" ItemsSource="{Binding ActiveFolderApps}"
+                                      ItemTemplate="{StaticResource AppCardTemplate}"
+                                      Margin="0,10,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                </Grid>
+            </Grid>
+
+            <!-- 右下角浮动帮助按钮：浮在卡片区之上，不随卡片滚动 -->
+            <controls:InfoTip x:Name="HelpTip"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Bottom"
+                              Margin="0,0,24,24"
+                              Panel.ZIndex="10" />
+        </Grid>
+    </Border>
+</Window>

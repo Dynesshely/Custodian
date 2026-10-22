@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Custodian.App/Custodian.App.csproj" />
+    <Project Path="src/Custodian.Core/Custodian.Core.csproj" />
+    <Project Path="src/Custodian.Interop/Custodian.Interop.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Custodian.Probe/Custodian.Probe.csproj" />
+    <Project Path="tools/IconForge/IconForge.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,81 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 基线主题（深色）。Themes/Fluent.xaml 会在其之后合并并覆盖同名键。 -->
+    <FontFamily x:Key="AppFontFamily">Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI</FontFamily>
+
+    <SolidColorBrush x:Key="AccentBrush" Color="#FF60CDFF" />
+    <Color x:Key="AccentColor">#FF60CDFF</Color>
+    <SolidColorBrush x:Key="LayerFillBrush" Color="#26FFFFFF" />
+    <SolidColorBrush x:Key="LayerFillHoverBrush" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="LayerFillPressedBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="LayerFillSelectedBrush" Color="#40FFFFFF" />
+    <SolidColorBrush x:Key="LayerBorderBrush" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="LayerBorderHoverBrush" Color="#33FFFFFF" />
+
+    <!-- 弹层（文件夹弹窗）：不透明面板 + 半透明遮罩，配合背后的 BlurEffect 做「毛玻璃」 -->
+    <SolidColorBrush x:Key="FlyoutBackgroundBrush" Color="#F2202020" />
+    <SolidColorBrush x:Key="ScrimBrush" Color="#73000000" />
+    <SolidColorBrush x:Key="BackdropBaseBrush" Color="#FF202020" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#B3FFFFFF" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#80FFFFFF" />
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FF000000" />
+    <SolidColorBrush x:Key="ControlFillBrush" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="ControlFillHoverBrush" Color="#26FFFFFF" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#26FFFFFF" />
+    <SolidColorBrush x:Key="ControlBorderFocusBrush" Color="#FF60CDFF" />
+    <SolidColorBrush x:Key="SubtleHoverBrush" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="SubtlePressedBrush" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="RailSelectedIndicatorBrush" Color="#FF60CDFF" />
+    <SolidColorBrush x:Key="RailSelectedBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#4DFFFFFF" />
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#80FFFFFF" />
+    <SolidColorBrush x:Key="WindowOutlineBrush" Color="#26FFFFFF" />
+    <SolidColorBrush x:Key="SeparatorBrush" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="ToolTipBackgroundBrush" Color="#F2202020" />
+    <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="ToolTipTextBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="IconMonoBrush" Color="#B3FFFFFF" />
+
+    <Style x:Key="TextStyleTitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="TextStyleBody" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="TextStyleBodyStrong" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="TextStyleCaption" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style x:Key="TextStyleSection" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="TextStyleHint" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+    </Style>
+
+</ResourceDictionary>

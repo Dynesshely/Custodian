@@ -1,0 +1,67 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        Custodian / Fluent 浅色值表（Windows 11 Fluent 2 参考值，针对 Mica 背景做了半透明调整）。
+        本文件只允许出现「画刷 / 颜色」类资源；样式与排版在 Fluent.xaml。
+        Dark.xaml 必须与本文件键完全一致（tools/ThemeLab 会在启动时校验）。
+    -->
+
+    <!-- 主题标识：ThemeManager 用它识别深浅色字典，勿删 -->
+    <sys:String x:Key="ThemeVariant">Light</sys:String>
+
+    <!-- 主色 -->
+    <Color x:Key="AccentColor">#FF0067C0</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+
+    <!-- 层（卡片 / 面板） -->
+    <SolidColorBrush x:Key="LayerFillBrush" Color="#A6FFFFFF" />
+    <SolidColorBrush x:Key="LayerFillHoverBrush" Color="#D6FFFFFF" />
+    <SolidColorBrush x:Key="LayerFillPressedBrush" Color="#B8FFFFFF" />
+    <SolidColorBrush x:Key="LayerFillSelectedBrush" Color="#CCFFFFFF" />
+    <SolidColorBrush x:Key="LayerBorderBrush" Color="#14000000" />
+    <SolidColorBrush x:Key="LayerBorderHoverBrush" Color="#24000000" />
+
+    <!-- 弹层（文件夹弹窗）：不透明面板 + 半透明遮罩，配合背后的 BlurEffect 做「毛玻璃」 -->
+    <SolidColorBrush x:Key="FlyoutBackgroundBrush" Color="#F2FAFAFA" />
+    <SolidColorBrush x:Key="ScrimBrush" Color="#38FFFFFF" />
+    <SolidColorBrush x:Key="BackdropBaseBrush" Color="#FFF5F5F5" />
+
+    <!-- 文字 -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E4000000" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#99000000" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#66000000" />
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFFFF" />
+
+    <!-- 输入控件 -->
+    <SolidColorBrush x:Key="ControlFillBrush" Color="#99FFFFFF" />
+    <SolidColorBrush x:Key="ControlFillHoverBrush" Color="#B3FFFFFF" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#1A000000" />
+    <SolidColorBrush x:Key="ControlBorderFocusBrush" Color="#FF0067C0" />
+
+    <!-- 无边框按钮 -->
+    <SolidColorBrush x:Key="SubtleHoverBrush" Color="#0F000000" />
+    <SolidColorBrush x:Key="SubtlePressedBrush" Color="#0A000000" />
+
+    <!-- 左栏 -->
+    <SolidColorBrush x:Key="RailSelectedIndicatorBrush" Color="#FF0067C0" />
+    <SolidColorBrush x:Key="RailSelectedBrush" Color="#12000000" />
+
+    <!-- 滚动条 -->
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#59000000" />
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#8A000000" />
+
+    <!-- 边缘 / 分隔 -->
+    <SolidColorBrush x:Key="WindowOutlineBrush" Color="#26000000" />
+    <SolidColorBrush x:Key="SeparatorBrush" Color="#14000000" />
+
+    <!-- 悬浮提示 -->
+    <SolidColorBrush x:Key="ToolTipBackgroundBrush" Color="#F7FFFFFF" />
+    <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#1A000000" />
+    <SolidColorBrush x:Key="ToolTipTextBrush" Color="#E4000000" />
+
+    <!-- 单色图标 -->
+    <SolidColorBrush x:Key="IconMonoBrush" Color="#8A000000" />
+
+</ResourceDictionary>
