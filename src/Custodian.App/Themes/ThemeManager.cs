@@ -124,6 +124,31 @@ public static class ThemeManager
         }
     }
 
+    /// <summary>
+    /// 按应用内设置应用主题：<c>system</c> 跟随系统，<c>light</c> / <c>dark</c> 强制。
+    /// 设置窗口与启动流程共用这一个入口。
+    /// </summary>
+    public static void ApplyPreference(string? mode)
+    {
+        switch ((mode ?? string.Empty).Trim().ToLowerInvariant())
+        {
+            case "light":
+                FollowSystem = false;
+                SetDark(false);
+                break;
+
+            case "dark":
+                FollowSystem = false;
+                SetDark(true);
+                break;
+
+            default:
+                FollowSystem = true;
+                RefreshFromSystem();
+                break;
+        }
+    }
+
     /// <summary>重新读取系统主题；返回是否发生了变化。</summary>
     public static bool RefreshFromSystem()
     {

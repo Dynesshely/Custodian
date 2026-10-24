@@ -17,32 +17,57 @@ public sealed class SandboxieConfig
 
     private readonly IniDocument _document;
 
-    private SandboxieConfig(string iniPath, IniDocument document, string fileRootPathTemplate, IReadOnlyList<SandboxBox> boxes)
+    private SandboxieConfig(
+        string iniPath,
+        IniDocument document,
+        string fileRootPathTemplate,
+        string rootPathSource,
+        IReadOnlyList<SandboxBox> boxes)
     {
         IniPath = iniPath;
         _document = document;
         FileRootPathTemplate = fileRootPathTemplate;
+        RootPathSource = rootPathSource;
         Boxes = boxes;
     }
 
     public string IniPath { get; }
 
+    /// <summary>实际生效的 FileRootPath 模板（可能是自定义值）。</summary>
     public string FileRootPathTemplate { get; }
+
+    /// <summary>根目录来源：<c>custom</c>（设置里覆盖）/ <c>ini</c>（Sandboxie.ini）/ <c>default</c>（内置默认）。</summary>
+    public string RootPathSource { get; }
+
+    public bool IsRootOverridden => RootPathSource == "custom";
 
     public IReadOnlyList<SandboxBox> Boxes { get; }
 
     public static string DefaultIniPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Sandboxie.ini");
 
-    public static SandboxieConfig Load(string? iniPath = null)
+    /// <param name="iniPath">Sandboxie.ini 路径；为空时用系统默认位置。</param>
+    /// <param name="rootPathOverride">设置里的「自定义沙盒存储位置」；为空则跟随 Sandboxie.ini。</param>
+    public static SandboxieConfig Load(string? iniPath = null, string? rootPathOverride = null)
     {
         var path = iniPath ?? DefaultIniPath;
         var document = File.Exists(path) ? IniDocument.Load(path) : IniDocument.Parse(string.Empty);
         var global = document.Find("GlobalSettings");
-        var fileRootPath = global?.GetValue("FileRootPath");
-        if (string.IsNullOrWhiteSpace(fileRootPath))
+
+        var source = "ini";
+        var fileRootPath = rootPathOverride?.Trim();
+        if (string.IsNullOrEmpty(fileRootPath))
         {
-            fileRootPath = DefaultFileRootPath;
+            fileRootPath = global?.GetValue("FileRootPath");
+            if (string.IsNullOrWhiteSpace(fileRootPath))
+            {
+                fileRootPath = DefaultFileRootPath;
+                source = "default";
+            }
+        }
+        else
+        {
+            source = "custom";
         }
 
         var groupTree = BuildGroupTree(document);
@@ -97,7 +122,7 @@ public sealed class SandboxieConfig
             sorted.Add(inferred);
         }
 
-        return new SandboxieConfig(path, document, fileRootPath, sorted);
+        return new SandboxieConfig(path, document, fileRootPath, source, sorted);
     }
 
     public static string ExpandPath(string template, string boxName)

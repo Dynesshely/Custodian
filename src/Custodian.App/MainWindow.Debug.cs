@@ -91,6 +91,8 @@ public partial class MainWindow
         "bounds" => DebugBounds(argument),
         "nav" => DebugResponse.Success(JsonSerializer.Serialize(new { rows = _vm.DescribeRows() })),
         "folder" => DebugFolder(argument),
+        "settings" => DebugSettings(argument),
+        "settingshot" => DebugSettingsShot(argument),
         "navraw" => DebugResponse.Success(JsonSerializer.Serialize(new
         {
             raw = _navRaw.Select(r => new { name = r.Name, x = r.X, y = r.Y }).ToList(),
@@ -280,6 +282,126 @@ public partial class MainWindow
             viewportWidth = Math.Round(CardsScroller.ViewportWidth, 2),
             viewportHeight = Math.Round(CardsScroller.ViewportHeight, 2),
         };
+    }
+
+    /// <summary>
+    /// settings               查看当前设置与存储路径
+    /// settings open|close     打开/关闭设置窗口
+    /// settings theme &lt;system|light|dark&gt;
+    /// settings view &lt;standard|compact&gt;
+    /// settings sandbox &lt;路径|default&gt;
+    /// </summary>
+    private DebugResponse DebugSettings(string argument)
+    {
+        var space = argument.IndexOf(' ');
+        var command = (space < 0 ? argument : argument[..space]).Trim().ToLowerInvariant();
+        var value = space < 0 ? string.Empty : argument[(space + 1)..].Trim();
+
+        switch (command)
+        {
+            case "open":
+                OpenSettings();
+                UpdateLayout();
+                break;
+
+            case "close":
+                CloseSettings();
+                break;
+
+            case "tab":
+                OpenSettings();
+                UpdateLayout();
+                _settingsWindow?.SelectTab(value);
+                break;
+
+            case "theme":
+                if (value.Length > 0)
+                {
+                    _settingsCoordinator.SetTheme(value);
+                    _settingsWindow?.RefreshFromSettings();
+                }
+
+                break;
+
+            case "view":
+                if (value.Length > 0)
+                {
+                    _settingsCoordinator.SetCompact(string.Equals(value, "compact", StringComparison.OrdinalIgnoreCase));
+                    _settingsWindow?.RefreshFromSettings();
+                }
+
+                break;
+
+            case "sandbox":
+                var root = value.Length == 0 || string.Equals(value, "default", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : value;
+                _ = _settingsCoordinator.SetSandboxRootAsync(root);
+                break;
+        }
+
+        return DebugResponse.Success(JsonSerializer.Serialize(BuildSettingsState()));
+    }
+
+    private object BuildSettingsState()
+    {
+        var settings = _vm.Settings;
+        return new
+        {
+            profile = Custodian.Core.Settings.StoragePaths.Profile.ToString(),
+            readPath = Custodian.Core.Settings.StoragePaths.ReadSettingsPath,
+            writePath = Custodian.Core.Settings.StoragePaths.WriteSettingsPath,
+            theme = Custodian.Core.Settings.CustodianSettings.NormalizeTheme(settings.Theme),
+            isDark = Themes.ThemeManager.IsDark,
+            followSystem = Themes.ThemeManager.FollowSystem,
+            cardView = _vm.IsCompactView ? "compact" : "standard",
+            sandboxRoot = settings.SandboxRootPath,
+            effectiveRoot = _vm.SandboxRootTemplate,
+            rootSource = _vm.SandboxRootSource,
+            sandboxIniPath = _vm.SandboxIniPath,
+            windowOpen = IsSettingsOpen,
+        };
+    }
+
+    private DebugResponse DebugSettingsShot(string argument)
+    {
+        if (_settingsWindow is null)
+        {
+            return DebugResponse.Fail("settings window is not open");
+        }
+
+        try
+        {
+            var root = (FrameworkElement)_settingsWindow.Content;
+            var width = (int)Math.Ceiling(root.ActualWidth);
+            var height = (int)Math.Ceiling(root.ActualHeight);
+            if (width <= 0 || height <= 0)
+            {
+                return DebugResponse.Fail("settings window has no size");
+            }
+
+            var background = TryFindResource("BackdropBaseBrush") as Brush ?? Brushes.Black;
+            var visual = new DrawingVisual();
+            using (var context = visual.RenderOpen())
+            {
+                context.DrawRectangle(background, null, new Rect(0, 0, width, height));
+                context.DrawRectangle(new VisualBrush(root), null, new Rect(0, 0, width, height));
+            }
+
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var stream = File.Create(argument);
+            encoder.Save(stream);
+
+            return DebugResponse.Success(argument + " " + width + "x" + height);
+        }
+        catch (Exception exception)
+        {
+            return DebugResponse.Fail(exception.Message);
+        }
     }
 
     private DebugResponse ToggleBackdrop(bool enabled)

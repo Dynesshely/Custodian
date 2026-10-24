@@ -3,11 +3,15 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
+using Custodian.Core.Settings;
 
 namespace Custodian.App;
 
 public partial class App : Application
 {
+    /// <summary>应用级设置（启动时读一次；开发实例读正式配置、写临时目录，见 <see cref="StoragePaths"/>）。</summary>
+    public static CustodianSettings Settings { get; private set; } = new();
+
     private const string MutexName = "Custodian.SingleInstance.7C1E6B0B";
     private const string ShowEventName = "Custodian.ShowPanel.7C1E6B0B";
 
@@ -28,7 +32,12 @@ public partial class App : Application
             return;
         }
 
-        LoadTheme();
+        // 开发实例（--debug / CUSTODIAN_DEBUG=1）读正式配置、写临时目录，避免污染正式实例
+        StoragePaths.Initialize(Debugging.DebugServer.IsEnabled ? StorageProfile.Development : StorageProfile.Production);
+        Settings = CustodianSettings.Load();
+        Services.Diagnostics.Write($"storage: profile={StoragePaths.Profile} write={StoragePaths.WriteSettingsPath}");
+
+        LoadTheme(Settings);
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
         var window = new MainWindow();
@@ -38,7 +47,7 @@ public partial class App : Application
         StartShowSignalListener();
     }
 
-    private void LoadTheme()
+    private void LoadTheme(CustodianSettings settings)
     {
         try
         {
@@ -53,6 +62,9 @@ public partial class App : Application
         try
         {
             Themes.ThemeManager.Initialize();
+
+            // 应用内「外观」设置：system / light / dark
+            Themes.ThemeManager.ApplyPreference(settings.Theme);
 
             // 排障开关：CUSTODIAN_SAFE=theme:light / theme:dark 可强制主题，便于截图自测
             if (SafeMode.Argument("theme:") is { Length: > 0 } forced &&

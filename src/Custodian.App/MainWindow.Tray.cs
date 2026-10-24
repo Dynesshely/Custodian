@@ -64,6 +64,7 @@ public partial class MainWindow
 
         menu.Items.Add(CreateMenuItem("显示面板", () => ShowAndFocus()));
         menu.Items.Add(CreateMenuItem("收起到托盘", HidePanel));
+        menu.Items.Add(CreateMenuItem("设置…", OpenSettings));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(CreateMenuItem("退出", ExitFromTray));
 

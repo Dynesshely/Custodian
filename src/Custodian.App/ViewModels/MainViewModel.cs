@@ -273,6 +273,15 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>图标服务（View 按视口懒加载时使用；扫描阶段不再逐张 await 图标）。</summary>
     public IconService Icons => _icons;
 
+    /// <summary>最近一次扫描时生效的沙盒根目录模板（FileRootPath）。</summary>
+    public string SandboxRootTemplate { get; private set; } = string.Empty;
+
+    /// <summary>根目录来源：custom（设置覆盖）/ ini / default。</summary>
+    public string SandboxRootSource { get; private set; } = "default";
+
+    /// <summary>读到的 Sandboxie.ini 路径。</summary>
+    public string SandboxIniPath { get; private set; } = string.Empty;
+
     // ---------------------------------------------------------------- 加载
 
     public async Task LoadAsync(CancellationToken cancellationToken)
@@ -280,11 +289,21 @@ public sealed class MainViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            var config = await Task.Run(() => SandboxieConfig.Load(), cancellationToken).ConfigureAwait(true);
+            var rootOverride = _settings.SandboxRootPath;
+            var config = await Task.Run(
+                () => SandboxieConfig.Load(rootPathOverride: rootOverride),
+                cancellationToken).ConfigureAwait(true);
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
+
+            SandboxRootTemplate = config.FileRootPathTemplate;
+            SandboxRootSource = config.RootPathSource;
+            SandboxIniPath = config.IniPath;
+            OnPropertyChanged(nameof(SandboxRootTemplate));
+            OnPropertyChanged(nameof(SandboxRootSource));
+            OnPropertyChanged(nameof(SandboxIniPath));
 
             _sections.Clear();
             Sections.Clear();

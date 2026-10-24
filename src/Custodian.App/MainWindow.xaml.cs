@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private const int IconPrefetchRows = 1;
 
     private readonly CustodianSettings _settings;
+    private readonly Services.SettingsCoordinator _settingsCoordinator;
     private readonly StaWorker _sta;
     private readonly ProcessMonitor _processMonitor;
     private readonly MainViewModel _vm;
@@ -74,11 +75,12 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        _settings = CustodianSettings.Load();
+        _settings = App.Settings;
         _sta = new StaWorker();
         var icons = new IconService(_sta);
         _vm = new MainViewModel(_settings, new ShortcutReaderAdapter(), icons, _sta);
         _processMonitor = new ProcessMonitor(() => _vm.CaptureRunning());
+        _settingsCoordinator = new Services.SettingsCoordinator(_vm, () => ReloadAsync());
 
         _iconThrottle = new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
         {

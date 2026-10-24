@@ -44,6 +44,7 @@ pwsh -NoProfile -File tools/run-dev.ps1     # build + launch a dev instance with
 
 - `tools/custodian-debug.ps1 "<command>"` talks to the running instance (`state`, `nav`, `view`, `filter`, `folder`, `mem`, …). All automated checks go through this channel — no OS-level input injection.
 - Performance tools: `tools/perf-monitor.ps1`, `perf-startup.ps1`, `perf-popup.ps1`, `gc-compare.ps1`.
+- Settings live in `~/.custodian/settings.json`. An instance started with `--debug` (what `run-dev.ps1` does) **reads** the production settings but **writes** to `%TEMP%\custodian-dev`, so development never touches your real configuration.
 - Installer: `dotnet publish` (win-x64, self-contained, single file) then `makensis installer/custodian.nsi`.
 
 ## Structure
@@ -66,6 +67,7 @@ assets/                logo and icon sources
 - **Two views.** Standard cards (icon left, text right) and a compact 96×96 grid whose sandbox blocks flow and wrap; standard applications collapse into a folder tile that opens a frosted-glass popup.
 - **Quiet and native.** Fluent + Mica, follows the system theme, ~0.4 % of one core while resident in the tray (sampling pauses while hidden).
 - **Summon it anywhere.** Global hotkey `Ctrl+Alt+Space`; switching views with `Ctrl+Shift+V`.
+- **Settings window.** A separate window (also available from the tray menu): appearance (theme, card view) and a custom Sandboxie storage location when your sandboxes do not live in the default place.
 - **Read-only by design.** Sandbox data is only read; the only writes are launching applications. An optional helper can clean host `.lnk` copies that leaked into sandbox folders.
 
 <p align="center">

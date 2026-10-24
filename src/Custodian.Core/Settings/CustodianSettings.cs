@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Custodian.Core.Settings;
 
-/// <summary>用户设置，落在 %LOCALAPPDATA%\Custodian\settings.json。</summary>
+/// <summary>用户设置，落在 <c>~/.custodian/settings.json</c>（开发实例写到临时目录，见 <see cref="StoragePaths"/>）。</summary>
 public sealed class CustodianSettings
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -27,49 +27,86 @@ public sealed class CustodianSettings
     /// <summary>卡片视图："standard"（默认，图标 + 名称 + 路径）或 "compact"（图标 + 标题网格）。</summary>
     public string CardView { get; set; } = "standard";
 
+    /// <summary>主题："system"（默认）/"light"/"dark"。</summary>
+    public string Theme { get; set; } = "system";
+
+    /// <summary>
+    /// 自定义 Sandboxie 沙盒存储位置（FileRootPath 模板）。
+    /// 为空表示跟随 Sandboxie.ini 的 GlobalSettings/FileRootPath（再不行就用默认值）。
+    /// </summary>
+    public string? SandboxRootPath { get; set; }
+
+    /// <summary>旧版配置位置（%LOCALAPPDATA%\Custodian\settings.json），仅用于一次性迁移。</summary>
     [JsonIgnore]
-    public static string FilePath { get; } = Path.Combine(
+    public static string LegacyFilePath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Custodian",
         "settings.json");
 
+    /// <summary>当前进程实际写入的配置文件。</summary>
+    [JsonIgnore]
+    public static string FilePath => StoragePaths.WriteSettingsPath;
+
     public static CustodianSettings Load()
+    {
+        var loaded = TryLoad(StoragePaths.ReadSettingsPath);
+
+        // 正式实例从旧的 %LOCALAPPDATA% 位置迁移一次
+        if (loaded is null && !StoragePaths.IsDevelopment)
+        {
+            loaded = TryLoad(LegacyFilePath);
+            if (loaded is not null)
+            {
+                loaded.Save();
+            }
+        }
+
+        return loaded ?? new CustodianSettings();
+    }
+
+    private static CustodianSettings? TryLoad(string path)
     {
         try
         {
-            if (File.Exists(FilePath))
+            if (!File.Exists(path))
             {
-                var json = File.ReadAllText(FilePath);
-                var settings = JsonSerializer.Deserialize<CustodianSettings>(json, JsonOptions);
-                if (settings is not null)
-                {
-                    return settings;
-                }
+                return null;
             }
+
+            var json = File.ReadAllText(path);
+            return JsonSerializer.Deserialize<CustodianSettings>(json, JsonOptions);
         }
         catch
         {
             // 配置损坏时回退默认值
+            return null;
         }
-
-        return new CustodianSettings();
     }
 
     public void Save()
     {
         try
         {
-            var directory = Path.GetDirectoryName(FilePath);
+            var path = StoragePaths.WriteSettingsPath;
+            var directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directory))
             {
                 Directory.CreateDirectory(directory);
             }
 
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOptions));
+            File.WriteAllText(path, JsonSerializer.Serialize(this, JsonOptions));
         }
         catch
         {
             // 保存失败不阻塞 UI
         }
     }
+
+    /// <summary>把主题设置归一化成 system / light / dark。</summary>
+    public static string NormalizeTheme(string? theme) => (theme ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "light" => "light",
+        "dark" => "dark",
+        _ => "system",
+    };
 }
