@@ -91,6 +91,15 @@ public partial class MainWindow
         "bounds" => DebugBounds(argument),
         "nav" => DebugResponse.Success(JsonSerializer.Serialize(new { rows = _vm.DescribeRows() })),
         "folder" => DebugFolder(argument),
+        "focus" => DebugResponse.Success(JsonSerializer.Serialize(new
+        {
+            active = IsActive,
+            focusedElement = Keyboard.FocusedElement?.GetType().Name,
+            focusedName = (Keyboard.FocusedElement as FrameworkElement)?.Name,
+            focusWithin = IsKeyboardFocusWithin,
+            childFocusable = CountFocusableChildren(RootBorder),
+            focusables = DescribeFocusable(RootBorder),
+        })),
         "anim" => DebugAnim(argument),
         "settings" => DebugSettings(argument),
         "settingshot" => DebugSettingsShot(argument),
@@ -285,6 +294,58 @@ public partial class MainWindow
         };
     }
 
+    /// <summary>列出当前窗口里还可聚焦的子元素（调试用；正常应为空）。</summary>
+    private static System.Collections.Generic.List<string> DescribeFocusable(DependencyObject root)
+    {
+        var result = new System.Collections.Generic.List<string>();
+        var stack = new System.Collections.Generic.Stack<DependencyObject>();
+        stack.Push(root);
+
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            if (current is UIElement element && element.Focusable)
+            {
+                var name = (element as FrameworkElement)?.Name;
+                result.Add(element.GetType().Name + (string.IsNullOrEmpty(name) ? string.Empty : "#" + name));
+            }
+
+            var children = System.Windows.Media.VisualTreeHelper.GetChildrenCount(current);
+            for (var i = 0; i < children; i++)
+            {
+                stack.Push(System.Windows.Media.VisualTreeHelper.GetChild(current, i));
+            }
+        }
+
+        result.Sort(StringComparer.Ordinal);
+        return result;
+    }
+
+    /// <summary>统计当前窗口里还有多少个可聚焦子元素（应当为 0）。</summary>
+    private static int CountFocusableChildren(DependencyObject root)
+    {
+        var count = 0;
+        var stack = new System.Collections.Generic.Stack<DependencyObject>();
+        stack.Push(root);
+
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            if (current is UIElement element && element is not Window && element.Focusable && element is not System.Windows.Controls.Primitives.ScrollBar)
+            {
+                count++;
+            }
+
+            var children = System.Windows.Media.VisualTreeHelper.GetChildrenCount(current);
+            for (var i = 0; i < children; i++)
+            {
+                stack.Push(System.Windows.Media.VisualTreeHelper.GetChild(current, i));
+            }
+        }
+
+        return count;
+    }
+
     private readonly System.Collections.Generic.List<object> _animTrace = new();
     private System.Windows.Threading.DispatcherTimer? _animTraceTimer;
     private DateTime _animTraceStart;
@@ -393,6 +454,29 @@ public partial class MainWindow
 
             case "folder-close":
                 _vm.CloseFolder();
+                break;
+
+            case "introstill":
+                // 播入场动画并在 ~90ms 时抓一帧（检查动画期间没有焦点框）
+                if (!IsVisible)
+                {
+                    Show();
+                }
+
+                _hiding = false;
+                PlayWindowIntro();
+                var introPath = rest.Length > 0 ? rest : "intro.png";
+                var introTimer = new System.Windows.Threading.DispatcherTimer(
+                    System.Windows.Threading.DispatcherPriority.Render, Dispatcher)
+                {
+                    Interval = TimeSpan.FromMilliseconds(90),
+                };
+                introTimer.Tick += (_, _) =>
+                {
+                    introTimer.Stop();
+                    DebugSnapshot(introPath);
+                };
+                introTimer.Start();
                 break;
 
             case "ringstill":

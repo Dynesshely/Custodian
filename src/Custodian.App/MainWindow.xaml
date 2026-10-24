@@ -19,6 +19,12 @@
         Deactivated="OnWindowDeactivated">
 
     <Window.Resources>
+        <!-- 列表容器不参与键盘焦点：导航完全由方向键模型驱动 -->
+        <Style TargetType="{x:Type ItemsControl}">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+        </Style>
+
         <!-- 左栏项：按钮行（不用 ListBox，避免其选中链路在某些窗口结构下不响应鼠标） -->
         <Style x:Key="RailButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="36" />

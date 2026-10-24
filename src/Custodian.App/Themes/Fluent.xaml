@@ -165,6 +165,9 @@
     <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource ThinScrollBarStyle}" />
 
     <Style x:Key="ScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
+        <!-- 不抢键盘焦点：页面观感要求“除了方向键移动选中，其它控件都不进入焦点状态” -->
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
@@ -212,6 +215,9 @@
     <!-- ========================= 启动卡片 ========================= -->
 
     <Style x:Key="LauncherCardStyle" TargetType="{x:Type Button}">
+        <!-- 卡片只由方向键模型选中，不参与 WPF 键盘焦点（否则会出现焦点框，且入场动画期间焦点框不跟随变换） -->
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Width" Value="176" />
         <Setter Property="Height" Value="112" />
         <Setter Property="Margin" Value="4" />
@@ -370,6 +376,8 @@
     </Style>
 
     <Style x:Key="IconButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Width" Value="32" />
         <Setter Property="Height" Value="32" />
         <Setter Property="Padding" Value="0" />
@@ -412,6 +420,9 @@
     <!-- ========================= 筛选输入框 ========================= -->
 
     <Style x:Key="FilterTextBoxStyle" TargetType="{x:Type TextBox}">
+        <!-- 输入由窗口级 PreviewTextInput 处理；不让 TextBox 拿焦点（避免出现光标/焦点线/与方向键导航抢焦点） -->
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Height" Value="32" />
         <Setter Property="Padding" Value="8,0" />
         <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
