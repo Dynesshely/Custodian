@@ -70,6 +70,6 @@ assets/                logo and icon sources
 
 <p align="center">
   <a href="https://star-history.com/#Dynesshely/Custodian&Date">
-    <img alt="Star history" src="https://api.star-history.com/svg?repos=Dynesshely/Custodian&type=Date" width="620" />
+    <img alt="Star history" src="https://api.star-history.com/svg?repos=Dynesshely/Custodian&type=Date&theme=dark" width="620" />
   </a>
 </p>
