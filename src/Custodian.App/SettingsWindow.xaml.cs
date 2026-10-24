@@ -35,6 +35,23 @@ public partial class SettingsWindow : Window
     {
         ReloadFromSettings();
         _loading = false;
+
+        // 初始焦点放到内容区的主题选项上：左栏 tab 不再画聚焦环，焦点留在 tab 上会“看不见焦点”
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (ThemeLight.IsChecked == true)
+            {
+                ThemeLight.Focus();
+            }
+            else if (ThemeDark.IsChecked == true)
+            {
+                ThemeDark.Focus();
+            }
+            else
+            {
+                ThemeSystem.Focus();
+            }
+        }), System.Windows.Threading.DispatcherPriority.Input);
     }
 
     // ---------------------------------------------------------------- 初始化

@@ -16,6 +16,51 @@
         PreviewKeyDown="OnWindowPreviewKeyDown">
 
     <Window.Resources>
+        <!-- 左栏 tab：和主面板左栏同一套观感，但不画键盘聚焦的 Accent 环（设置窗口里那个环很像“选中激活框”） -->
+        <Style x:Key="SettingsTabStyle" TargetType="{x:Type RadioButton}">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Padding" Value="12,0,8,0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RadioButton}">
+                        <Grid SnapsToDevicePixels="True">
+                            <Border x:Name="Bg" CornerRadius="6" Background="Transparent" />
+                            <Border x:Name="Indicator"
+                                    Width="3" Margin="0,9"
+                                    HorizontalAlignment="Left"
+                                    CornerRadius="1.5"
+                                    Background="Transparent" />
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtlePressedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource RailSelectedBrush}" />
+                                <Setter TargetName="Indicator" Property="Background" Value="{DynamicResource RailSelectedIndicatorBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- 分段选择（主题 / 卡片视图）：选中态用层填充，未选中透明 -->
         <Style x:Key="SegmentStyle" TargetType="{x:Type RadioButton}">
             <Setter Property="Height" Value="32" />
@@ -117,6 +162,18 @@
         </Style>
     </Window.Resources>
 
+    <!--
+        和主面板一样用 WindowChrome 接管非客户区：GlassFrameThickness=0 关掉 DWM 画的系统外框，
+        否则「Mica + ExtendFrame」会在 WPF 自绘圆角边框外面再套一圈 DWM 框，看起来像窗口背后还有一层窗口。
+    -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
     <Border x:Name="RootBorder"
             CornerRadius="8"
             BorderThickness="1"
@@ -165,7 +222,7 @@
 
                         <StackPanel Grid.Row="0">
                             <RadioButton x:Name="TabAppearance"
-                                         Style="{DynamicResource RailItemStyle}"
+                                         Style="{StaticResource SettingsTabStyle}"
                                          GroupName="SettingsTabs"
                                          IsChecked="True"
                                          Checked="OnTabChecked"
@@ -173,7 +230,7 @@
                                 <TextBlock Text="外观" />
                             </RadioButton>
                             <RadioButton x:Name="TabSandbox"
-                                         Style="{DynamicResource RailItemStyle}"
+                                         Style="{StaticResource SettingsTabStyle}"
                                          GroupName="SettingsTabs"
                                          Checked="OnTabChecked"
                                          Tag="sandbox">

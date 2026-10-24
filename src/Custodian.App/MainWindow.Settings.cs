@@ -25,6 +25,12 @@ public partial class MainWindow
             return;
         }
 
+        // 主面板收起：设置是独立窗口，不该在主面板上面再叠一层（否则看起来像“背后还有一层窗口”）
+        if (IsVisible)
+        {
+            HidePanel();
+        }
+
         _settingsWindow = new SettingsWindow(_settingsCoordinator);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
