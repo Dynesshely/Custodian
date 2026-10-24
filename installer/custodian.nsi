@@ -7,7 +7,7 @@ Unicode true
 
 ; 版本号可以由命令行覆盖（CI: makensis /DAPP_VERSION=1.2.3 /DAPP_VERSION_QUAD=1.2.3.0）
 !ifndef APP_VERSION
-!define APP_VERSION "0.2.4"
+!define APP_VERSION "0.3.0"
 !endif
 !ifndef APP_VERSION_QUAD
 !define APP_VERSION_QUAD "${APP_VERSION}.0"

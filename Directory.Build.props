@@ -4,7 +4,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.2.4</Version>
+    <Version>0.3.0</Version>
     <Company>Dynesshely</Company>
     <Product>Custodian</Product>
     <Copyright>Copyright © Dynesshely 2026</Copyright>
