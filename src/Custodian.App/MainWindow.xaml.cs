@@ -91,7 +91,8 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = _vm;
 
-        _vm.HideRequested += (_, _) => HidePanel();
+        _vm.HideRequested += (_, _) => RequestHideAfterLaunch();
+        _vm.AppLaunched += (_, _) => _ = PlayLaunchRingAsync();
         _vm.HintRequested += (_, message) => ShowTransientHint(message);
         _vm.SelectionMoved += (_, item) => ScrollItemIntoView(item);
         _vm.FolderOpened += (_, _) => RefreshFolderLayer();
@@ -147,9 +148,11 @@ public partial class MainWindow : Window
     public void ShowAndFocus()
     {
         _suppressDeactivateHide = true;
+        _hiding = false;
         if (!IsVisible)
         {
             Show();
+            PlayWindowIntro();
         }
 
         if (WindowState == WindowState.Minimized)
@@ -1049,6 +1052,9 @@ public partial class MainWindow : Window
         UpdateBackdrop();
         var backdrop = stopwatch.Elapsed.TotalMilliseconds;
         stopwatch.Restart();
+
+        // 弹窗出入场动画：打开时先让覆盖层可见再量布局，关闭时延后到动画结束才 Collapsed
+        AnimateFolderOverlay(_vm.IsFolderOpen);
 
         UpdateLayout();
         var layout = stopwatch.Elapsed.TotalMilliseconds;

@@ -65,6 +65,9 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>请求隐藏面板（启动应用后 / Esc / 失焦）。</summary>
     public event EventHandler? HideRequested;
 
+    /// <summary>应用已经成功提交启动（在 <see cref="HideRequested"/> 之前触发，便于窗口先播启动动画）。</summary>
+    public event EventHandler? AppLaunched;
+
     /// <summary>需要在工具栏区域给一条临时提示。</summary>
     public event EventHandler<string>? HintRequested;
 
@@ -1016,6 +1019,9 @@ public sealed class MainViewModel : ObservableObject
         }
 
         card.IsRunning = true;
+
+        // 先通知窗口播「启动中」动画，再决定是否收起
+        AppLaunched?.Invoke(this, EventArgs.Empty);
 
         if (_settings.HideOnLaunch)
         {

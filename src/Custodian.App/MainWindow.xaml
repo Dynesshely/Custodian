@@ -372,7 +372,11 @@
     </WindowChrome.WindowChrome>
 
     <Border x:Name="RootBorder" CornerRadius="8" BorderThickness="1"
-            BorderBrush="{DynamicResource WindowOutlineBrush}">
+            BorderBrush="{DynamicResource WindowOutlineBrush}"
+            RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="RootShift" Y="0" />
+        </Border.RenderTransform>
         <Grid>
             <!--
                 整窗内容（工具栏 + 主体）。文件夹弹窗打开时这一层会被「截图 → 缩小一半 → 盒式模糊」的位图替代
@@ -518,9 +522,9 @@
             </Grid>
             </Grid>
 
-            <!-- 文件夹弹窗（紧凑视图）：整窗毛玻璃遮罩 + 居中面板，Esc 返回上一级 -->
-            <Grid Panel.ZIndex="30"
-                  Visibility="{Binding IsFolderOpen, Converter={StaticResource BoolToVis}}">
+            <!-- 文件夹弹窗（紧凑视图）：整窗毛玻璃遮罩 + 居中面板，Esc 返回上一级。
+                 可见性与出入动画由 MainWindow.Animations.cs 驱动（Visibility 绑定会让关闭动画来不及播）。 -->
+            <Grid x:Name="FolderOverlay" Panel.ZIndex="30" Visibility="Collapsed">
                 <!-- 弹窗打开瞬间截的模糊快照（替代原来的整窗 BlurEffect） -->
                 <Image x:Name="BackdropSnapshot" Stretch="Fill"
                        IsHitTestVisible="False"
@@ -529,7 +533,11 @@
                 <Border x:Name="FolderScrim" Background="{DynamicResource ScrimBrush}"
                         MouseLeftButtonDown="OnFolderScrimClick" />
 
-                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid x:Name="FolderPanelHost" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="FolderPanelScale" ScaleX="1" ScaleY="1" />
+                    </Grid.RenderTransform>
                     <!-- 九宫格软阴影：一张预烘焙位图，替代 DropShadowEffect 的离屏渲染 -->
                     <controls:NinePatchShadow Margin="-26" />
 
@@ -564,6 +572,23 @@
                 </Border>
                 </Grid>
             </Grid>
+
+            <!--
+                启动应用的边框 loading：圆角矩形的描边用虚线段画出一小截高亮，
+                再让 StrokeDashOffset 从 0 走到一整圈的长度 → 高亮段沿窗口边框转一圈。
+                dash 单位 = 描边宽度的倍数（2 DIP），所以 34/1900 ≈ 68/3800 DIP。
+            -->
+            <Rectangle x:Name="LaunchRing"
+                       Panel.ZIndex="40"
+                       Margin="1"
+                       RadiusX="8" RadiusY="8"
+                       Stroke="{DynamicResource AccentBrush}"
+                       StrokeThickness="2.5"
+                       StrokeDashArray="80 1860"
+                       StrokeDashOffset="0"
+                       Opacity="0"
+                       Visibility="Collapsed"
+                       IsHitTestVisible="False" />
 
             <!-- 右下角浮动帮助按钮：浮在卡片区之上，不随卡片滚动 -->
             <controls:InfoTip x:Name="HelpTip"

@@ -67,6 +67,7 @@ assets/                logo and icon sources
 - **Two views.** Standard cards (icon left, text right) and a compact 96×96 grid whose sandbox blocks flow and wrap; standard applications collapse into a folder tile that opens a frosted-glass popup.
 - **Quiet and native.** Fluent + Mica, follows the system theme, ~0.4 % of one core while resident in the tray (sampling pauses while hidden).
 - **Summon it anywhere.** Global hotkey `Ctrl+Alt+Space`; switching views with `Ctrl+Shift+V`.
+- **Motion, kept quiet.** The panel eases in and out, the compact folder popup scales and fades, and launching an app sweeps a short accent segment around the window border before the panel retires. All of it follows the system "show animations" setting.
 - **Settings window.** A separate window (also available from the tray menu): appearance (theme, card view) and a custom Sandboxie storage location when your sandboxes do not live in the default place.
 - **Read-only by design.** Sandbox data is only read; the only writes are launching applications. An optional helper can clean host `.lnk` copies that leaked into sandbox folders.
 

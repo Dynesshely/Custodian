@@ -91,6 +91,7 @@ public partial class MainWindow
         "bounds" => DebugBounds(argument),
         "nav" => DebugResponse.Success(JsonSerializer.Serialize(new { rows = _vm.DescribeRows() })),
         "folder" => DebugFolder(argument),
+        "anim" => DebugAnim(argument),
         "settings" => DebugSettings(argument),
         "settingshot" => DebugSettingsShot(argument),
         "navraw" => DebugResponse.Success(JsonSerializer.Serialize(new
@@ -282,6 +283,163 @@ public partial class MainWindow
             viewportWidth = Math.Round(CardsScroller.ViewportWidth, 2),
             viewportHeight = Math.Round(CardsScroller.ViewportHeight, 2),
         };
+    }
+
+    private readonly System.Collections.Generic.List<object> _animTrace = new();
+    private System.Windows.Threading.DispatcherTimer? _animTraceTimer;
+    private DateTime _animTraceStart;
+
+    private void StartAnimationTrace()
+    {
+        _animTrace.Clear();
+        _animTraceStart = DateTime.UtcNow;
+        _animTraceTimer ??= new System.Windows.Threading.DispatcherTimer(
+            System.Windows.Threading.DispatcherPriority.Render, Dispatcher);
+        _animTraceTimer.Interval = TimeSpan.FromMilliseconds(25);
+        _animTraceTimer.Tick -= OnAnimTraceTick;
+        _animTraceTimer.Tick += OnAnimTraceTick;
+        _animTraceTimer.Start();
+    }
+
+    private void OnAnimTraceTick(object? sender, EventArgs e)
+    {
+        var elapsed = (DateTime.UtcNow - _animTraceStart).TotalMilliseconds;
+        _animTrace.Add(new
+        {
+            t = Math.Round(elapsed),
+            root = Math.Round(RootBorder.Opacity, 2),
+            shift = Math.Round(RootShift.Y, 1),
+            overlay = FolderOverlay.Visibility == Visibility.Visible
+                ? Math.Round(FolderPanelHost.Opacity, 2)
+                : -1,
+            scrim = Math.Round(FolderScrim.Opacity, 2),
+            scale = Math.Round(FolderPanelScale.ScaleX, 3),
+            ring = LaunchRing.Visibility == Visibility.Visible
+                ? Math.Round(LaunchRing.Opacity, 2)
+                : -1,
+            offset = Math.Round(LaunchRing.StrokeDashOffset, 0),
+            visible = IsVisible,
+        });
+
+        if (elapsed > 700)
+        {
+            _animTraceTimer?.Stop();
+        }
+    }
+
+    /// <summary>
+    /// anim                查看动画状态（覆盖层 / 边框 loading / 窗口可见性）
+    /// anim trace          开始按 25ms 采样动画过程（之后用 anim 读取 trace）
+    /// anim intro|outro    播窗口出现 / 收起动画
+    /// anim ring           播启动应用的边框 loading（不真的启动程序）
+    /// </summary>
+    private DebugResponse DebugAnim(string argument)
+    {
+        var text = argument.Trim();
+        if (text.EndsWith(" --traced", StringComparison.Ordinal))
+        {
+            text = text[..^" --traced".Length].Trim();
+            StartAnimationTrace();
+        }
+
+        var split = text.IndexOf(' ');
+        var scene = (split < 0 ? text : text[..split]).Trim().ToLowerInvariant();
+        var rest = split < 0 ? string.Empty : text[(split + 1)..].Trim();
+
+        if (scene == "start")
+        {
+            // anim start <scene>：先开采样，再在同一帧里跑场景，采样才抓得到
+            return DebugAnim(rest + " --traced");
+        }
+
+        switch (scene)
+        {
+            case "trace":
+                StartAnimationTrace();
+                break;
+
+            case "start":
+                DebugAnim(argument[(argument.IndexOf(' ') + 1)..].Trim() + " --traced");
+                break;
+
+            case "intro":
+                _hiding = false;
+                if (!IsVisible)
+                {
+                    Show();
+                }
+
+                PlayWindowIntro();
+                break;
+
+            case "outro":
+                HidePanel();
+                break;
+
+            case "ring":
+                _ = PlayLaunchRingAsync();
+                break;
+
+            case "folder-open":
+                var section = _vm.Sections.FirstOrDefault(s => s.StandardApps.Count > 0);
+                if (section is not null)
+                {
+                    _vm.OpenFolder(section.Folder);
+                    UpdateLayout();
+                    RunViewportPassNow();
+                }
+
+                break;
+
+            case "folder-close":
+                _vm.CloseFolder();
+                break;
+
+            case "ringstill":
+                // 播边框 loading，并在 ~180ms 时截一张图（用来留档动画效果）
+                _ = PlayLaunchRingAsync();
+                var path = rest.Length > 0 ? rest : "ring.png";
+                var timer = new System.Windows.Threading.DispatcherTimer(
+                    System.Windows.Threading.DispatcherPriority.Render, Dispatcher)
+                {
+                    Interval = TimeSpan.FromMilliseconds(180),
+                };
+                timer.Tick += (_, _) =>
+                {
+                    timer.Stop();
+                    DebugSnapshot(path);
+                };
+                timer.Start();
+                break;
+
+            case "launch":
+                // 走真实启动链路：AppLaunched → 边框 loading → HideRequested → 收起动画
+                if (_vm.SelectedCard is { } card)
+                {
+                    _vm.Launch(card);
+                }
+
+                break;
+        }
+
+        return DebugResponse.Success(JsonSerializer.Serialize(new
+        {
+            animations = System.Windows.SystemParameters.ClientAreaAnimation && !SafeMode.Has("anim"),
+            visible = IsVisible,
+            hiding = _hiding,
+            overlay = FolderOverlay.Visibility.ToString(),
+            scrimOpacity = Math.Round(FolderScrim.Opacity, 2),
+            snapshotOpacity = Math.Round(BackdropSnapshot.Opacity, 2),
+            panelOpacity = Math.Round(FolderPanelHost.Opacity, 2),
+            panelScale = Math.Round(FolderPanelScale.ScaleX, 3),
+            ring = LaunchRing.Visibility.ToString(),
+            ringOpacity = Math.Round(LaunchRing.Opacity, 2),
+            ringOffset = Math.Round(LaunchRing.StrokeDashOffset, 1),
+            rootOpacity = Math.Round(RootBorder.Opacity, 2),
+            rootShiftY = Math.Round(RootShift.Y, 1),
+            folderOpen = _vm.IsFolderOpen,
+            trace = _animTrace,
+        }));
     }
 
     /// <summary>

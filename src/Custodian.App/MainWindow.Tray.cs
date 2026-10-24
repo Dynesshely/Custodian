@@ -113,9 +113,29 @@ public partial class MainWindow
         Diagnostics.Write("tray: menu opened");
     }
 
-    /// <summary>关闭按钮：隐藏窗口但保留托盘与热键。</summary>
+    /// <summary>关闭按钮：播放收起动画后隐藏窗口（托盘与热键保留）。</summary>
     private void HidePanel()
     {
+        if (_hiding)
+        {
+            return;
+        }
+
+        if (!IsVisible)
+        {
+            FinalizeHide();
+            return;
+        }
+
+        _hiding = true;
+        PlayWindowOutro(FinalizeHide);
+    }
+
+    /// <summary>收起动画结束后的实际收尾：关弹窗、停采样、隐藏窗口。</summary>
+    private void FinalizeHide()
+    {
+        _hiding = false;
+
         // 收起面板时把文件夹弹窗一并关掉，下次唤出回到正常层级；
         // 同时暂停「运行中」进程采样，托盘常驻时不再周期性枚举全系统进程。
         _vm.CloseFolder(restoreSelection: false);
